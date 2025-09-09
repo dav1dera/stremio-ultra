@@ -1,0 +1,24 @@
+/data/*/data/*
+############ NGINX ##############
+/data/nginx/data/*
+!/data/nginx/data/nginx/
+############ ZILEAN ##############
+!/data/zilean/data/*.json
+############ PGDATA ##############
+/postgres-data/pgdata/*
+!/postgres-data/pgdata/.gitkeep
+############ SEANIME ##############
+!/data/seanime/data/*/
+/data/seanime/data/*/anime/
+/data/seanime/data/*/downloads/
+/data/seanime/data/**/cache
+/data/seanime/data/**/logs
+/data/seanime/data/**/manga
+/data/seanime/data/**/manga-local
+/data/seanime/data/**/offline
+/data/seanime/data/**/*.png
+/data/seanime/data/**/extensions
+!/data/seanime/data/*/config/
+############ GLUETUN ##############
+/data/gluetun/data/*
+!/data/gluetun/data/.gitkeep

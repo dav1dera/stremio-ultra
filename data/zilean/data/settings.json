@@ -1,0 +1,54 @@
+{
+  "Zilean": {
+    "ApiKey": "YOURZILEANAPIKEY",
+    "FirstRun": false,
+    "EnableDashboard": false,
+    "Dmm": {
+      "EnableScraping": true,
+      "EnableEndpoint": true,
+      "ScrapeSchedule": "0 * * * *",
+      "MinimumReDownloadIntervalMinutes": 30,
+      "MaxFilteredResults": 200,
+      "MinimumScoreMatch": 0.85
+    },
+    "Torznab": {
+      "EnableEndpoint": true
+    },
+    "Database": {
+      "ConnectionString": "Host=postgres;Database=zilean;Username=postgres;Password=postgres;Include Error Detail=true;Timeout=30;CommandTimeout=3600;"
+    },
+    "Torrents": {
+      "EnableEndpoint": false,
+      "MaxHashesToCheck": 100,
+      "EnableScrapeEndpoint": false,
+      "EnableCacheCheckEndpoint": false
+    },
+    "Imdb": {
+      "EnableImportMatching": true,
+      "EnableEndpoint": true,
+      "MinimumScoreMatch": 0.85,
+      "UseAllCores": false,
+      "NumberOfCores": 2,
+      "UseLucene": false
+    },
+    "Ingestion": {
+      "ZurgInstances": [],
+      "ZileanInstances": [],
+      "GenericInstances": [],
+      "EnableScraping": false,
+      "Kubernetes": {
+        "EnableServiceDiscovery": false,
+        "KubernetesSelectors": [],
+        "KubeConfigFile": "/$HOME/.kube/config",
+        "AuthenticationType": 0
+      },
+      "ScrapeSchedule": "0 * * * *",
+      "ZurgEndpointSuffix": "/debug/torrents",
+      "ZileanEndpointSuffix": "/torrents/all",
+      "RequestTimeout": 10000
+    },
+    "Parsing": {
+      "BatchSize": 5000
+    }
+  }
+}

@@ -1,0 +1,338 @@
+services:
+  # 🖥️ Portainer - docker manager
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data/portainer/data:/data
+    env_file:
+      - ./data/portainer/.env
+    ports:
+      - "9443:9443"
+      - "9000:9000"
+    networks:
+      - default
+  # 🌐 Nginx Proxy Manager - proxy & certificates
+  npm:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: nginx-proxy-manager
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "81:81"
+      - "443:443"
+    env_file:
+      - ./data/npm/.env
+    volumes:
+      - npm-data:/data
+      - npm-letsencrypt:/etc/letsencrypt
+    networks:
+      - default
+  # 🛡️ Gluetun - VPN/Proxy container
+  gluetun:
+    image: qmcgaw/gluetun
+    container_name: gluetun
+    env_file:
+      - ./data/gluetun/.env
+    volumes:
+      - gluetun-data:/data
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - 8288:8888/tcp
+      - 8388:8388/tcp
+      - 8388:8388/udp
+    networks:
+      - default
+  # ☁️ Cloudflare DDNS - automatically update dns
+  cloudflare-ddns:
+    image: favonia/cloudflare-ddns:latest
+    container_name: cloudflare-ddns
+    restart: always
+    user: "1000:1000"
+    read_only: true
+    cap_drop: [all]
+    security_opt: [no-new-privileges:true]
+    env_file:
+      - ./data/cloudflare-ddns/.env
+    networks:
+      - default
+  # 🔄 Mediaflow Proxy - stream proxy
+  mediaflow-proxy:
+    image: mhdzumair/mediaflow-proxy:latest
+    container_name: mediaflow-proxy
+    restart: unless-stopped
+    ports:
+      - "8888:8888"
+    env_file:
+      - ./data/mediaflow-proxy/.env
+    networks:
+      - default
+  # 🕵️ FlareSolverr - Bypass Cloudflare protections
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    env_file:
+      - ./data/flaresolverr/.env
+    ports:
+      - "8191:8191"
+    restart: always
+    networks:
+      - default
+  # 🎥 AIOStreams - Streaming AIO
+  aiostreams:
+    image: ghcr.io/viren070/aiostreams:latest
+    container_name: aiostreams
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./data/aiostreams/.env
+    volumes:
+      - ./data/aiostreams/data:/app/data
+    networks:
+      - default
+  # 🚀 Comet - Addon
+  comet:
+    image: g0ldyy/comet:latest
+    container_name: comet
+    restart: unless-stopped
+    ports:
+      - "2020:2020"
+    env_file:
+      - ./data/comet/.env
+    volumes:
+      - ./data/comet/data:/app/data
+    healthcheck:
+      test: wget -qO- http://127.0.0.1:2020/health || exit 1
+      interval: 1m
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - default
+  # 📡 MediaFusion - Addon
+  mediafusion:
+    image: mhdzumair/mediafusion:4.3.34
+    container_name: mediafusion
+    ports:
+      - "8000:8000"
+    env_file: ./data/mediafusion/.env
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 1m
+      timeout: 10s
+      retries: 5
+      start_period: 20m
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - default
+  # 📺 StreamVix - Addon
+  streamv:
+    image: krystall0/streamvix:latest
+    container_name: streamv
+    env_file:
+      - ./data/streamvix/.env
+    restart: always
+    networks:
+      - default
+  # 📦 OMG-TV - Addon
+  omg-tv-stremio-addon:
+    build: ./data/omg-tv
+    container_name: omg-tv
+    restart: unless-stopped
+    env_file:
+      - ./data/omg-tv/.env
+    volumes:
+      - ./data/omg-tv/data:/app/data
+    ports:
+      - "10000:10000"
+    networks:
+      - default
+  # 🔍 Comet - Scraper
+  comet-scraper:
+    image: g0ldyy/comet:latest
+    container_name: comet-scraper
+    restart: unless-stopped
+    env_file:
+      - ./data/comet-scraper/.env
+    volumes:
+      - ./data/comet-scraper/data:/app/data
+    healthcheck:
+      test: wget -qO- http://127.0.0.1:2121/health || exit 1
+      interval: 1m
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - default
+  # 🔍 StremThru - Scraper
+  stremthru:
+    image: muniftanjim/stremthru:latest
+    container_name: stremthru
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./data/stremthru/.env
+    volumes:
+      - ./data/stremthru/data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy  
+    networks:
+      - default
+  # 🔍 Zilean - Scraper
+  zilean:
+    image: ipromknight/zilean:latest
+    restart: unless-stopped
+    container_name: zilean
+    tty: true
+    env_file:
+      - ./data/postgres/.env
+    ports:
+      - "8181:8181"
+    volumes:
+      - ./data/zilean/data:/app/data
+      - ./data/zilean/data/tmp:/tmp
+    healthcheck:
+      test: curl --connect-timeout 10 --silent --show-error --fail http://localhost:8181/healthchecks/ping
+      timeout: 60s
+      interval: 30s
+      retries: 10
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - default
+  # 🔍 Jackett - Torrent indexer/scraper
+  jackett:
+    image: linuxserver/jackett:latest
+    container_name: jackett
+    restart: unless-stopped
+    ports:
+      - "9117:9117"
+    env_file:
+      - ./data/jackett/.env
+    volumes:
+      - ./data/jackett/data:/config
+    healthcheck:
+      test: curl -f http://localhost:9117/health
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - default
+  # 🗄️ PostgreSQL - Main database 
+  postgres:
+    image: postgres:17.2-alpine
+    container_name: postgres
+    restart: unless-stopped
+    shm_size: 2G
+    env_file:
+      - ./data/postgres/.env
+    volumes:
+      - ./postgres-data/init:/docker-entrypoint-initdb.d
+      - ./postgres-data/pgdata:/var/lib/postgresql/data/pgdata
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - default
+  # ⚡ Redis - Cache
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --save 60 1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "echo", "ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - default
+  # 🍃 MongoDB - Database for mediafusion
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "27017:27017"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - default
+  # ⏱️ Watchtower - Automatically update containers
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    env_file:
+      - ./data/watchtower/.env
+    command: --cleanup --include-restarting
+    networks:
+      - default
+
+volumes:
+  npm-data:
+  npm-letsencrypt:
+  postgres_data:
+  mongo-data:
+  redis-data:
+  jackett-config:
+  jackett-downloads:
+  jackettio-data:
+  gluetun-data:
+
+networks:
+  default:
+    name: stremio-local
+    ipam:
+      config:
+        - subnet: 172.18.0.0/16
