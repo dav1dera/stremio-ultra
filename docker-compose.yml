@@ -332,7 +332,7 @@ volumes:
 
 networks:
   default:
-    name: stremio-local
+    name: stremio-ultra
     ipam:
       config:
         - subnet: 172.18.0.0/16
