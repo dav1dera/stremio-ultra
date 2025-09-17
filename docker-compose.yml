@@ -13,7 +13,9 @@ services:
       - "9443:9443"
       - "9000:9000"
     networks:
-      - default
+      default:
+        ipv4_address: 172.18.0.3
+
   # 🌐 Nginx Proxy Manager - proxy & certificates
   npm:
     image: jc21/nginx-proxy-manager:latest
@@ -29,7 +31,9 @@ services:
       - npm-data:/data
       - npm-letsencrypt:/etc/letsencrypt
     networks:
-      - default
+      default:
+        ipv4_address: 172.18.0.4
+
   # 🛡️ Gluetun - VPN/Proxy container
   gluetun:
     image: qmcgaw/gluetun
@@ -43,11 +47,26 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     ports:
-      - 8288:8888/tcp
+      - 8889:8889/tcp
       - 8388:8388/tcp
       - 8388:8388/udp
+      - 7860:7860 #streamvix
+      - 10000:10000 #omg-tv
+      - 43211:43211 #seanime
+      - 43311:43311 #pallini
+      - 43411:43411 #freik
+      - 8191:8191 #flaresolverr
+      # - 3000:3000 #aiostreams
+      # - 8888:8888 #mfp
+      - 2020:2020 #comet
+      - 2121:2121 #comet-scraper
+      - 8080:8080 #stremthru
+      - 8181:8181 #zilean
+      - 9171:9117 #jackett
     networks:
-      - default
+      default:
+        ipv4_address: 172.18.0.2
+    
   # ☁️ Cloudflare DDNS - automatically update dns
   cloudflare-ddns:
     image: favonia/cloudflare-ddns:latest
@@ -60,7 +79,9 @@ services:
     env_file:
       - ./data/cloudflare-ddns/.env
     networks:
-      - default
+      default:
+        ipv4_address: 172.18.0.5
+
   # 🔄 Mediaflow Proxy - stream proxy
   mediaflow-proxy:
     image: mhdzumair/mediaflow-proxy:latest
@@ -70,19 +91,22 @@ services:
       - "8888:8888"
     env_file:
       - ./data/mediaflow-proxy/.env
+    # network_mode: "service:gluetun"
     networks:
-      - default
+      default:
+        ipv4_address: 172.18.0.9
+
   # 🕵️ FlareSolverr - Bypass Cloudflare protections
   flaresolverr:
     image: ghcr.io/flaresolverr/flaresolverr:latest
     container_name: flaresolverr
     env_file:
       - ./data/flaresolverr/.env
-    ports:
-      - "8191:8191"
+    # ports:
+    #   - "8191:8191"
     restart: always
-    networks:
-      - default
+    network_mode: "service:gluetun"
+
   # 🎥 AIOStreams - Streaming AIO
   aiostreams:
     image: ghcr.io/viren070/aiostreams:latest
@@ -94,15 +118,18 @@ services:
       - ./data/aiostreams/.env
     volumes:
       - ./data/aiostreams/data:/app/data
+    # network_mode: "service:gluetun"
     networks:
-      - default
+      default:
+        ipv4_address: 172.18.0.10
+
   # 🚀 Comet - Addon
   comet:
     image: g0ldyy/comet:latest
     container_name: comet
     restart: unless-stopped
-    ports:
-      - "2020:2020"
+    # ports:
+    #   - "2020:2020"
     env_file:
       - ./data/comet/.env
     volumes:
@@ -116,34 +143,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    networks:
-      - default
-  # 📡 MediaFusion - Addon
-  mediafusion:
-    image: mhdzumair/mediafusion:4.3.34
-    container_name: mediafusion
-    ports:
-      - "8000:8000"
-    env_file: ./data/mediafusion/.env
-    depends_on:
-      mongodb:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 1m
-      timeout: 10s
-      retries: 5
-      start_period: 20m
-    restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    networks:
-      - default
+    network_mode: "service:gluetun"
+
   # 📺 StreamVix - Addon
   streamv:
     image: krystall0/streamvix:latest
@@ -151,8 +152,8 @@ services:
     env_file:
       - ./data/streamvix/.env
     restart: always
-    networks:
-      - default
+    network_mode: "service:gluetun"
+    
   # 📦 OMG-TV - Addon
   omg-tv-stremio-addon:
     build: ./data/omg-tv
@@ -162,10 +163,62 @@ services:
       - ./data/omg-tv/.env
     volumes:
       - ./data/omg-tv/data:/app/data
-    ports:
-      - "10000:10000"
-    networks:
-      - default
+    network_mode: "service:gluetun"
+
+  # 🎬 Seanime - User main
+  seanime:
+    image: umagistr/seanime:latest
+    container_name: seanime
+    volumes:
+      - ./data/seanime/data/davide/anime:/anime
+      - ./data/seanime/data/davide/downloads:/downloads
+      - ./data/seanime/data/davide:/mnt
+      - ./data/seanime/data/davide/config:/root/.config/Seanime
+    restart: always
+    healthcheck:
+      test: wget -qO- http://localhost:43211/api/v1/status
+      interval: 5m
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    network_mode: "service:gluetun"
+
+  # 🎬 Seanime - User pallini
+  seanime-pallini:
+    image: umagistr/seanime:latest
+    container_name: seanime-pallini
+    volumes:
+      - ./data/seanime/data/pallini/anime:/anime
+      - ./data/seanime/data/pallini/downloads:/downloads
+      - ./data/seanime/data/pallini:/mnt
+      - ./data/seanime/data/pallini/config:/root/.config/Seanime
+    restart: always
+    healthcheck:
+      test: wget -qO- http://localhost:43311/api/v1/status
+      interval: 5m
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    network_mode: "service:gluetun"
+
+  # 🎬 Seanime - User freik
+  seanime-freik:
+    image: umagistr/seanime:latest
+    container_name: seanime-freik
+    volumes:
+      - ./data/seanime/data/freik/anime:/anime
+      - ./data/seanime/data/freik/downloads:/downloads
+      - ./data/seanime/data/freik:/mnt
+      - ./data/seanime/data/freik/config:/root/.config/Seanime
+    restart: always
+    healthcheck:
+      test: wget -qO- http://localhost:43411/api/v1/status
+      interval: 5m
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    network_mode: "service:gluetun"
+
   # 🔍 Comet - Scraper
   comet-scraper:
     image: g0ldyy/comet:latest
@@ -184,24 +237,24 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    networks:
-      - default
+    network_mode: "service:gluetun"
+
   # 🔍 StremThru - Scraper
   stremthru:
     image: muniftanjim/stremthru:latest
     container_name: stremthru
     restart: unless-stopped
-    ports:
-      - "8080:8080"
+    # ports:
+    #   - "8080:8080"
     env_file:
       - ./data/stremthru/.env
     volumes:
       - ./data/stremthru/data:/app/data
     depends_on:
       postgres:
-        condition: service_healthy  
-    networks:
-      - default
+        condition: service_healthy
+    network_mode: "service:gluetun"
+
   # 🔍 Zilean - Scraper
   zilean:
     image: ipromknight/zilean:latest
@@ -210,8 +263,8 @@ services:
     tty: true
     env_file:
       - ./data/postgres/.env
-    ports:
-      - "8181:8181"
+    # ports:
+    #   - "8181:8181"
     volumes:
       - ./data/zilean/data:/app/data
       - ./data/zilean/data/tmp:/tmp
@@ -223,15 +276,15 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    networks:
-      - default
+    network_mode: "service:gluetun"
+
   # 🔍 Jackett - Torrent indexer/scraper
   jackett:
     image: linuxserver/jackett:latest
     container_name: jackett
     restart: unless-stopped
-    ports:
-      - "9117:9117"
+    # ports:
+    #   - "9117:9117"
     env_file:
       - ./data/jackett/.env
     volumes:
@@ -242,9 +295,9 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-    networks:
-      - default
-  # 🗄️ PostgreSQL - Main database 
+    network_mode: "service:gluetun"
+
+  # 🗄️ PostgreSQL - Main database
   postgres:
     image: postgres:17.2-alpine
     container_name: postgres
@@ -256,12 +309,14 @@ services:
       - ./postgres-data/init:/docker-entrypoint-initdb.d
       - ./postgres-data/pgdata:/var/lib/postgresql/data/pgdata
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - default
+      default:
+        ipv4_address: 172.18.0.6
+
   # ⚡ Redis - Cache
   redis:
     image: redis:latest
@@ -283,29 +338,9 @@ services:
         max-size: "10m"
         max-file: "3"
     networks:
-      - default
-  # 🍃 MongoDB - Database for mediafusion
-  mongodb:
-    image: mongo:latest
-    container_name: mongodb
-    volumes:
-      - mongo-data:/data/db
-    ports:
-      - "27017:27017"
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    networks:
-      - default
+      default:
+        ipv4_address: 172.18.0.7
+
   # ⏱️ Watchtower - Automatically update containers
   watchtower:
     image: containrrr/watchtower
@@ -317,13 +352,12 @@ services:
       - ./data/watchtower/.env
     command: --cleanup --include-restarting
     networks:
-      - default
-
+      default:
+        ipv4_address: 172.18.0.8
 volumes:
   npm-data:
   npm-letsencrypt:
   postgres_data:
-  mongo-data:
   redis-data:
   jackett-config:
   jackett-downloads:
@@ -332,7 +366,7 @@ volumes:
 
 networks:
   default:
-    name: stremio-ultra
+    name: internal-net 
     ipam:
       config:
         - subnet: 172.18.0.0/16
